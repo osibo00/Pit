@@ -16,11 +16,13 @@ import java.util.Collections;
 import java.util.List;
 
 import productions.darthplagueis.pit.R;
+import productions.darthplagueis.pit.util.PitPointComparator;
+import productions.darthplagueis.pit.util.PitViewContract;
 import productions.darthplagueis.pit.util.PitViewHelper;
 
-public class PitView extends View {
+public class PitView extends View implements PitViewContract {
 
-    private Paint axisPaint, linePaint, pointPaint;
+    private Paint axisPaint, pointPaint, linePaint;
     private int axesColor, lineColor, pointColor;
     private float centerWidth, centerHeight;
     private boolean arePitPointsCreated;
@@ -55,6 +57,13 @@ public class PitView extends View {
         setUpPointsLine(canvas);
     }
 
+    @Override
+    public void addPitPoint() {
+        pointList.add(new PitPoint(getContext(), centerWidth, centerHeight));
+        Collections.sort(pointList, new PitPointComparator());
+        invalidate();
+    }
+
     private void init(Context context, @Nullable AttributeSet attrs) {
         if (attrs != null) {
             final TypedArray attributes = context.obtainStyledAttributes(
@@ -84,14 +93,14 @@ public class PitView extends View {
         axisPaint.setStyle(Paint.Style.STROKE);
         axisPaint.setStrokeWidth(4);
 
+        pointPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        pointPaint.setColor(pointColor);
+        pointPaint.setStyle(Paint.Style.FILL);
+
         linePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         linePaint.setColor(lineColor);
         linePaint.setStyle(Paint.Style.STROKE);
         linePaint.setStrokeWidth(8);
-
-        pointPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        pointPaint.setColor(pointColor);
-        pointPaint.setStyle(Paint.Style.FILL);
     }
 
     private void createInitialPitPoints(int widthMeasureSpec, int heightMeasureSpec) {
@@ -109,7 +118,7 @@ public class PitView extends View {
                 pointList.add(point);
             }
 
-            Collections.sort(pointList, PitViewHelper.compareByXPos);
+            Collections.sort(pointList, new PitPointComparator());
             arePitPointsCreated = true;
         }
     }
@@ -127,7 +136,7 @@ public class PitView extends View {
 
     private void setUpPitPoints(Canvas canvas) {
         for (PitPoint point : pointList) {
-            canvas.drawCircle(point.getxPosition(), point.getyPosition(), 16, pointPaint);
+            canvas.drawCircle(point.getXPosition(), point.getYPosition(), 16, pointPaint);
         }
     }
 
@@ -138,8 +147,8 @@ public class PitView extends View {
             Path linePath = new Path();
 
             for (int i = 1; i < n; i++) {
-                linePath.moveTo(pointList.get(i - 1).getxPosition(), pointList.get(i - 1).getyPosition());
-                linePath.lineTo(pointList.get(i).getxPosition(), pointList.get(i).getyPosition());
+                linePath.moveTo(pointList.get(i - 1).getXPosition(), pointList.get(i - 1).getYPosition());
+                linePath.lineTo(pointList.get(i).getXPosition(), pointList.get(i).getYPosition());
             }
 
             linePath.close();
