@@ -5,17 +5,27 @@ import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.support.annotation.Nullable;
 import android.support.v4.content.ContextCompat;
 import android.util.AttributeSet;
 import android.view.View;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import productions.darthplagueis.pit.R;
+import productions.darthplagueis.pit.util.PitViewHelper;
 
 public class PitView extends View {
 
-    private Paint axes, line, point;
+    private Paint axisPaint, linePaint, pointPaint;
     private int axesColor, lineColor, pointColor;
+    private float centerWidth, centerHeight;
+    private boolean arePitPointsCreated;
+
+    private final List<PitPoint> pointList = new ArrayList<>(5);
 
     public PitView(Context context) {
         super(context);
@@ -31,6 +41,8 @@ public class PitView extends View {
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 
+        createInitialPitPoints(widthMeasureSpec, heightMeasureSpec);
+
         setMeasuredDimension(widthMeasureSpec, heightMeasureSpec);
     }
 
@@ -39,6 +51,8 @@ public class PitView extends View {
         super.onDraw(canvas);
 
         setUpPitGraph(canvas);
+        setUpPitPoints(canvas);
+        setUpPointsLine(canvas);
     }
 
     private void init(Context context, @Nullable AttributeSet attrs) {
@@ -65,29 +79,72 @@ public class PitView extends View {
             pointColor = ContextCompat.getColor(context, R.color.colorAccent);
         }
 
-        axes = new Paint(Paint.ANTI_ALIAS_FLAG);
-        axes.setColor(axesColor);
-        axes.setStyle(Paint.Style.STROKE);
-        axes.setStrokeWidth(4);
+        axisPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        axisPaint.setColor(axesColor);
+        axisPaint.setStyle(Paint.Style.STROKE);
+        axisPaint.setStrokeWidth(4);
 
-        line = new Paint(Paint.ANTI_ALIAS_FLAG);
-        line.setColor(lineColor);
-        line.setStrokeWidth(8);
+        linePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        linePaint.setColor(lineColor);
+        linePaint.setStyle(Paint.Style.STROKE);
+        linePaint.setStrokeWidth(8);
 
-        point = new Paint(Paint.ANTI_ALIAS_FLAG);
-        point.setColor(pointColor);
-        point.setStyle(Paint.Style.FILL);
+        pointPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        pointPaint.setColor(pointColor);
+        pointPaint.setStyle(Paint.Style.FILL);
+    }
+
+    private void createInitialPitPoints(int widthMeasureSpec, int heightMeasureSpec) {
+        if (!arePitPointsCreated) {
+            PitViewHelper helper = PitViewHelper.getINSTANCE();
+            int width = MeasureSpec.getSize(widthMeasureSpec);
+            int height = MeasureSpec.getSize(heightMeasureSpec);
+
+            for (int i = 0; i < 5; i++) {
+                PitPoint point = new PitPoint(
+                        getContext(),
+                        helper.randomFloat(0, width),
+                        helper.randomFloat(0, height)
+                );
+                pointList.add(point);
+            }
+
+            Collections.sort(pointList, PitViewHelper.compareByXPos);
+            arePitPointsCreated = true;
+        }
     }
 
     private void setUpPitGraph(Canvas canvas) {
         int width = canvas.getWidth();
         int height = canvas.getHeight();
-        int centerWidth = canvas.getWidth() / 2;
-        int centerHeight = canvas.getHeight() / 2;
+        centerWidth = width / 2;
+        centerHeight = height / 2;
 
         canvas.drawColor(Color.LTGRAY);
-        canvas.drawLine(centerWidth, 0, centerWidth, height, axes);
-        canvas.drawLine(0, centerHeight, width, centerHeight, axes);
+        canvas.drawLine(centerWidth, 0, centerWidth, height, axisPaint);
+        canvas.drawLine(0, centerHeight, width, centerHeight, axisPaint);
+    }
+
+    private void setUpPitPoints(Canvas canvas) {
+        for (PitPoint point : pointList) {
+            canvas.drawCircle(point.getxPosition(), point.getyPosition(), 16, pointPaint);
+        }
+    }
+
+    private void setUpPointsLine(Canvas canvas) {
+        int n = pointList.size();
+
+        if (n > 1) {
+            Path linePath = new Path();
+
+            for (int i = 1; i < n; i++) {
+                linePath.moveTo(pointList.get(i - 1).getxPosition(), pointList.get(i - 1).getyPosition());
+                linePath.lineTo(pointList.get(i).getxPosition(), pointList.get(i).getyPosition());
+            }
+
+            linePath.close();
+            canvas.drawPath(linePath, linePaint);
+        }
     }
 
     public int getAxesColor() {
@@ -117,4 +174,3 @@ public class PitView extends View {
         invalidate();
     }
 }
-

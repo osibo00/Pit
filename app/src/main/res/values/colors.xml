@@ -5,4 +5,6 @@
     <color name="colorAccent">#FF4081</color>
 
     <color name="blackHighEmphasis">#de000000</color>
+    <color name="colorOrange">#ff6859</color>
+    <color name="colorYellow">#ffcf44</color>
 </resources>
