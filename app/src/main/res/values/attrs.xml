@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <declare-styleable name="PitView">
+        <attr name="canvasColor" format="color" />
         <attr name="axesColor" format="color" />
-        <attr name="lineColor" format="color" />
         <attr name="pointColor" format="color" />
+        <attr name="lineColor" format="color" />
     </declare-styleable>
 </resources>

@@ -9,6 +9,7 @@ import android.graphics.Path;
 import android.support.annotation.Nullable;
 import android.support.v4.content.ContextCompat;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
 import android.view.View;
 
 import java.util.ArrayList;
@@ -23,11 +24,12 @@ import productions.darthplagueis.pit.util.PitViewHelper;
 public class PitView extends View implements PitViewContract {
 
     private Paint axisPaint, pointPaint, linePaint;
-    private int axesColor, lineColor, pointColor;
-    private float centerWidth, centerHeight;
+    private int canvasColor, axesColor, lineColor, pointColor;
+    private int viewWidth, viewHeight, centerWidth, centerHeight;
     private boolean arePitPointsCreated;
 
     private final List<PitPoint> pointList = new ArrayList<>(5);
+    private PitPoint selectedPoint = null;
 
     public PitView(Context context) {
         super(context);
@@ -43,9 +45,13 @@ public class PitView extends View implements PitViewContract {
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 
-        createInitialPitPoints(widthMeasureSpec, heightMeasureSpec);
+        viewWidth = MeasureSpec.getSize(widthMeasureSpec);
+        viewHeight = MeasureSpec.getSize(heightMeasureSpec);
+        centerWidth = viewWidth / 2;
+        centerHeight = viewHeight / 2;
 
-        setMeasuredDimension(widthMeasureSpec, heightMeasureSpec);
+        createInitialPitPoints();
+        setMeasuredDimension(viewWidth, viewHeight);
     }
 
     @Override
@@ -55,6 +61,33 @@ public class PitView extends View implements PitViewContract {
         setUpPitGraph(canvas);
         setUpPitPoints(canvas);
         setUpPointsLine(canvas);
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                return true;
+            case MotionEvent.ACTION_MOVE:
+                selectedPoint = getSelectedPoint(event.getX(), event.getY());
+
+                if (selectedPoint != null) {
+                    if ((event.getX() > 16 && event.getX() < viewWidth - 16) &&
+                            (event.getY() > 16 && event.getY() < viewHeight - 16)) {
+                        selectedPoint.setXPosition(event.getX());
+                        selectedPoint.setYPosition(event.getY());
+
+                        Collections.sort(pointList, new PitPointComparator());
+                        invalidate();
+                    }
+                }
+                return true;
+            case MotionEvent.ACTION_UP:
+                selectedPoint = null;
+                return true;
+            default:
+                return false;
+        }
     }
 
     @Override
@@ -71,6 +104,7 @@ public class PitView extends View implements PitViewContract {
                     R.styleable.PitView
             );
 
+            canvasColor = attributes.getColor(R.styleable.PitView_canvasColor, Color.LTGRAY);
             axesColor = attributes.getColor(R.styleable.PitView_axesColor, Color.BLACK);
             lineColor = attributes.getColor(
                     R.styleable.PitView_lineColor,
@@ -83,6 +117,7 @@ public class PitView extends View implements PitViewContract {
 
             attributes.recycle();
         } else {
+            canvasColor = Color.LTGRAY;
             axesColor = Color.BLACK;
             lineColor = ContextCompat.getColor(context, R.color.colorPrimary);
             pointColor = ContextCompat.getColor(context, R.color.colorAccent);
@@ -103,17 +138,15 @@ public class PitView extends View implements PitViewContract {
         linePaint.setStrokeWidth(8);
     }
 
-    private void createInitialPitPoints(int widthMeasureSpec, int heightMeasureSpec) {
+    private void createInitialPitPoints() {
         if (!arePitPointsCreated) {
             PitViewHelper helper = PitViewHelper.getINSTANCE();
-            int width = MeasureSpec.getSize(widthMeasureSpec);
-            int height = MeasureSpec.getSize(heightMeasureSpec);
 
             for (int i = 0; i < 5; i++) {
                 PitPoint point = new PitPoint(
                         getContext(),
-                        helper.randomFloat(0, width),
-                        helper.randomFloat(0, height)
+                        helper.randomFloat(16, viewWidth),
+                        helper.randomFloat(16, viewHeight)
                 );
                 pointList.add(point);
             }
@@ -124,14 +157,9 @@ public class PitView extends View implements PitViewContract {
     }
 
     private void setUpPitGraph(Canvas canvas) {
-        int width = canvas.getWidth();
-        int height = canvas.getHeight();
-        centerWidth = width / 2;
-        centerHeight = height / 2;
-
-        canvas.drawColor(Color.LTGRAY);
-        canvas.drawLine(centerWidth, 0, centerWidth, height, axisPaint);
-        canvas.drawLine(0, centerHeight, width, centerHeight, axisPaint);
+        canvas.drawColor(canvasColor);
+        canvas.drawLine(centerWidth, 0, centerWidth, viewHeight, axisPaint);
+        canvas.drawLine(0, centerHeight, viewWidth, centerHeight, axisPaint);
     }
 
     private void setUpPitPoints(Canvas canvas) {
@@ -156,21 +184,26 @@ public class PitView extends View implements PitViewContract {
         }
     }
 
+    @Nullable
+    private PitPoint getSelectedPoint(float x, float y) {
+        for (PitPoint point : pointList) {
+            float xPosition = point.getXPosition();
+            float yPosition = point.getYPosition();
+            if ((xPosition > x - 32 && xPosition < x + 32) &&
+                    (yPosition > y - 32 && yPosition < y + 32)) {
+                return point;
+            }
+        }
+        return null;
+    }
+
     public int getAxesColor() {
         return axesColor;
     }
 
     public void setAxesColor(int axesColor) {
         this.axesColor = axesColor;
-        invalidate();
-    }
-
-    public int getLineColor() {
-        return lineColor;
-    }
-
-    public void setLineColor(int lineColor) {
-        this.lineColor = lineColor;
+        axisPaint.setColor(axesColor);
         invalidate();
     }
 
@@ -180,6 +213,17 @@ public class PitView extends View implements PitViewContract {
 
     public void setPointColor(int pointColor) {
         this.pointColor = pointColor;
+        pointPaint.setColor(pointColor);
+        invalidate();
+    }
+
+    public int getLineColor() {
+        return lineColor;
+    }
+
+    public void setLineColor(int lineColor) {
+        this.lineColor = lineColor;
+        linePaint.setColor(lineColor);
         invalidate();
     }
 }
