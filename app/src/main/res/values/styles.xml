@@ -8,4 +8,11 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
+    <style name="DefaultPitViewStyle">
+        <item name="canvasColor">@color/colorSurfaceDark</item>
+        <item name="axesColor">@color/blackHighEmphasis</item>
+        <item name="pointColor">@color/colorOrange</item>
+        <item name="lineColor">@color/colorYellow</item>
+    </style>
+
 </resources>

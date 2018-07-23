@@ -4,7 +4,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 
-import productions.darthplagueis.pit.util.PitViewContract;
+import productions.darthplagueis.pit.view.util.PitViewContract;
 
 public class MainActivity extends AppCompatActivity {
 
